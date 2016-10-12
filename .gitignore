@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.sqlite3
+data/depenses.csv
 
 # C extensions
 *.so
