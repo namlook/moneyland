@@ -27,7 +27,8 @@ with open("./data/depenses.csv") as f:
             pass
         else:
             id, date, title, amount, forPeople, _, paid_by, tags, _ = row
-            user, _ = models.User.objects.get_or_create(login=paid_by.lower())
+            paid_by = paid_by.lower().strip()
+            user, _ = models.User.objects.get_or_create(username=paid_by, password=paid_by)
             entry, _ = models.Entry.objects.get_or_create(
                 date = datetime.datetime.strptime(date, "%d/%m/%Y").date(),
                 title = title,
@@ -37,7 +38,7 @@ with open("./data/depenses.csv") as f:
 
             for login in forPeople.lower().split(', '):
                 if login.strip():
-                    person, _ = models.User.objects.get_or_create(login=login)
+                    person, _ = models.User.objects.get_or_create(username=login, password=login)
                     entry.for_people.add(person)
 
             for category in tags.lower().split(', '):

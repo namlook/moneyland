@@ -1,15 +1,19 @@
 {% extends 'admin/change_list.html' %}
-{% load i18n %}
-{% load admin_list %}
 
-{% block result_list %}
-    {% if action_form and actions_on_top and cl.full_result_count %}{% admin_actions %}{% endif %}
-    {% result_list cl %}
-    {% if action_form and actions_on_bottom and cl.full_result_count %}{% admin_actions %}{% endif %}
+
+
+{% block object-tools-items %}
+    {{ block.super }}
+    <li> <a href="{% url 'admin:reporting' %}">reporting</a> </li>
+{% endblock %}
+
+{% block content %}
     <p>Balance: {{ cl.balance }}€ </p>
     <p><b>{{ cl.final_owe_person }} doit à {{ cl.final_owe_other_person }}: {{ cl.final_owe_amount }}€ </b> </p>
     <ul>
         <li>Nath doit à Nico: {{ cl.nath_owe_nico }}€ </li>
         <li>Nico doit à Nath: {{ cl.nico_owe_nath }}€ </li>
     </ul>
- {% endblock %}
+    {{ block.super }}
+
+{% endblock %}

@@ -1,15 +1,18 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 from django.contrib.admin.views.main import ChangeList
 from django.db.models import Count, Sum
 import datetime
+
+from .admin_views import ReportingView
+from django.conf.urls import url
 
 # Register your models here.
 
 from .models import User, Category, Entry
 
-admin.site.register(User)
 admin.site.register(Category)
-
+admin.site.register(User, UserAdmin)
 
 
 from django.utils.translation import ugettext_lazy as _
@@ -105,7 +108,7 @@ class NumPeopleListFilter(admin.SimpleListFilter):
         value = self.value()
         if value is not None:
             value = int(value)
-            return queryset.annotate(num_people=Count('for_people__login', distinct=True)) \
+            return queryset.annotate(num_people=Count('for_people__username', distinct=True)) \
                     .filter(num_people=value)
         return queryset
 
@@ -115,13 +118,13 @@ class MyChangeList(ChangeList):
     def get_results(self, *args, **kwargs):
         super(MyChangeList, self).get_results(*args, **kwargs)
         # q = self.result_list.aggregate(total=Sum('amount'))
-        # self.total = q['total']
+        # self.balance = round(sum(i.paid_amount for i in self.results_list), 2) # XXX
+        # nath_owe_nico = sum(i.paid_amount for i in self.result_list.filter(paid_by__username="nico", for_people__username="nath"))
+        # nico_owe_nath = sum(i.paid_amount for i in self.result_list.filter(paid_by__username="nath", for_people__username="nico"))
         results = list(self.result_list)
         self.balance = round(sum(i.paid_amount for i in results), 2) # XXX
-        # nath_owe_nico = sum(i.paid_amount for i in self.result_list.filter(paid_by__login="nico", for_people__login="nath"))
-        # nico_owe_nath = sum(i.paid_amount for i in self.result_list.filter(paid_by__login="nath", for_people__login="nico"))
-        nath_owe_nico = sum(i.paid_amount for i in results if i.paid_by.login == "nico" and i.for_people.filter(login="nath").count())
-        nico_owe_nath = sum(i.paid_amount for i in results if i.paid_by.login == "nath" and i.for_people.filter(login="nico").count())
+        nath_owe_nico = sum(i.paid_amount for i in results if i.paid_by.username == "nico" and i.for_people.filter(username="nath").count())
+        nico_owe_nath = sum(i.paid_amount for i in results if i.paid_by.username == "nath" and i.for_people.filter(username="nico").count())
 
         final_owe_person = "nobody"
         final_owe_other_person = ""
@@ -145,7 +148,7 @@ class MyChangeList(ChangeList):
 
 
 class EntryAdmin(admin.ModelAdmin):
-    list_display = ('date', 'title', 'paid_amount', 'paid_by', 'for_who', 'tags')#, 'num_people')
+    list_display = ('date', 'title', 'paid_amount', 'paid_by', 'for_who', 'tags', 'num_people')
     list_filter = ['date', YearListFilter, MonthListFilter, 'paid_by', NumPeopleListFilter, 'for_people', 'categories']
     search_fields = ['title']
 
@@ -153,7 +156,7 @@ class EntryAdmin(admin.ModelAdmin):
         return MyChangeList
 
     def for_who(self, obj):
-        return ", ".join(sorted(i.login for i in obj.for_people.all()))
+        return ", ".join(sorted(i.username for i in obj.for_people.all()))
     for_who.short_description = 'for'
 
     def tags(self, obj):
@@ -165,17 +168,30 @@ class EntryAdmin(admin.ModelAdmin):
         return obj.num_people
     num_people.short_description = "# people"
 
-    def has_video(self, obj):
-        """Does the expert have a video?"""
-
-        return obj.has_video / obj.num_companies
-    has_video.short_description = "video?"
-
     def get_queryset(self, request):
         """Use this so we can annotate with additional info."""
-
         qs = super(EntryAdmin, self).get_queryset(request)
         return qs.annotate(num_people=Count('for_people', distinct=True))
+
+    def get_urls(self):
+        urls = super(EntryAdmin, self).get_urls()
+        my_urls = [
+            url(r'^reporting/$', ReportingView.as_view(entry_admin=self), name='reporting'),
+        ]
+        return my_urls + urls
+
+
+    # def get_total():
+    #     """Retourne le montant total de tous les résultats filtrés"""
+    #     return qs.aggregate()
+    #
+    # def changelist_view(self, request, object_id, form_url='', extra_context=None):
+    #     extra_context = extra_context or {}
+    #     qs = super(MyModelAdmin, self).get_queryset(request)
+    #     extra_context['total'] = self.get_total(qs)
+    #     return super(MyModelAdmin, self).change_view(
+    #         request, object_id, form_url, extra_context=extra_context,
+    #     )
 
 
 admin.site.register(Entry, EntryAdmin)
