@@ -39,6 +39,7 @@ class Entry(models.Model):
     paid_by = models.ForeignKey(User, related_name='expenses')
     for_people = models.ManyToManyField(User, related_name='entries')
     categories = models.ManyToManyField(Category)
+    _num_people = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ["date"]
@@ -49,4 +50,20 @@ class Entry(models.Model):
 
     @property
     def paid_amount(self):
-        return self.amount / self.for_people.count()
+        if (self._num_people > 0):
+            return self.amount / self._num_people
+        return 0
+
+
+from django.db.models.signals import m2m_changed
+from django.dispatch import receiver
+
+@receiver(m2m_changed, sender=Entry.for_people.through)
+def calculate_num_people(sender, instance, action, **kwargs):
+    """ Automatically recalculate the number of people who share the amount """
+    if action == 'post_add':
+        instance._num_people = instance.for_people.count()
+        instance.save()
+    if action == 'post_remove' or action == 'post_clear':
+        instance._num_people = instance.for_people.count()
+        instance.save()

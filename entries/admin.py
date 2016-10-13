@@ -113,36 +113,36 @@ class NumPeopleListFilter(admin.SimpleListFilter):
         return queryset
 
 
-class MyChangeList(ChangeList):
-
-    def get_results(self, *args, **kwargs):
-        super(MyChangeList, self).get_results(*args, **kwargs)
-        # q = self.result_list.aggregate(total=Sum('amount'))
-        # self.balance = round(sum(i.paid_amount for i in self.results_list), 2) # XXX
-        # nath_owe_nico = sum(i.paid_amount for i in self.result_list.filter(paid_by__username="nico", for_people__username="nath"))
-        # nico_owe_nath = sum(i.paid_amount for i in self.result_list.filter(paid_by__username="nath", for_people__username="nico"))
-        results = list(self.result_list)
-        self.balance = round(sum(i.paid_amount for i in results), 2) # XXX
-        nath_owe_nico = sum(i.paid_amount for i in results if i.paid_by.username == "nico" and i.for_people.filter(username="nath").count())
-        nico_owe_nath = sum(i.paid_amount for i in results if i.paid_by.username == "nath" and i.for_people.filter(username="nico").count())
-
-        final_owe_person = "nobody"
-        final_owe_other_person = ""
-        final_owe_amount = 0
-        if nath_owe_nico > nico_owe_nath:
-            final_owe_person = "nath"
-            final_owe_other_person = "nico"
-            final_owe_amount = nath_owe_nico - nico_owe_nath
-        elif nico_owe_nath > nath_owe_nico:
-            final_owe_person = "nico"
-            final_owe_other_person = "nath"
-            final_owe_amount = nico_owe_nath - nath_owe_nico
-
-        self.nath_owe_nico = round(nath_owe_nico, 2)
-        self.nico_owe_nath = round(nico_owe_nath, 2)
-        self.final_owe_amount = round(final_owe_amount)
-        self.final_owe_person = final_owe_person.capitalize()
-        self.final_owe_other_person = final_owe_other_person.capitalize()
+# class MyChangeList(ChangeList):
+#
+#     def get_results(self, *args, **kwargs):
+#         super(MyChangeList, self).get_results(*args, **kwargs)
+#         # q = self.result_list.aggregate(total=Sum('amount'))
+#         # self.balance = round(sum(i.paid_amount for i in self.results_list), 2) # XXX
+#         # nath_owe_nico = sum(i.paid_amount for i in self.result_list.filter(paid_by__username="nico", for_people__username="nath"))
+#         # nico_owe_nath = sum(i.paid_amount for i in self.result_list.filter(paid_by__username="nath", for_people__username="nico"))
+#         results = list(self.result_list)
+#         self.balance = round(sum(i.paid_amount for i in results), 2) # XXX
+#         nath_owe_nico = sum(i.paid_amount for i in results if i.paid_by.username == "nico" and i.for_people.filter(username="nath").count())
+#         nico_owe_nath = sum(i.paid_amount for i in results if i.paid_by.username == "nath" and i.for_people.filter(username="nico").count())
+#
+#         final_owe_person = "nobody"
+#         final_owe_other_person = ""
+#         final_owe_amount = 0
+#         if nath_owe_nico > nico_owe_nath:
+#             final_owe_person = "nath"
+#             final_owe_other_person = "nico"
+#             final_owe_amount = nath_owe_nico - nico_owe_nath
+#         elif nico_owe_nath > nath_owe_nico:
+#             final_owe_person = "nico"
+#             final_owe_other_person = "nath"
+#             final_owe_amount = nico_owe_nath - nath_owe_nico
+#
+#         self.nath_owe_nico = round(nath_owe_nico, 2)
+#         self.nico_owe_nath = round(nico_owe_nath, 2)
+#         self.final_owe_amount = round(final_owe_amount)
+#         self.final_owe_person = final_owe_person.capitalize()
+#         self.final_owe_other_person = final_owe_other_person.capitalize()
 
 
 
@@ -150,10 +150,11 @@ class MyChangeList(ChangeList):
 class EntryAdmin(admin.ModelAdmin):
     list_display = ('date', 'title', 'paid_amount', 'paid_by', 'for_who', 'tags', 'num_people')
     list_filter = ['date', YearListFilter, MonthListFilter, 'paid_by', NumPeopleListFilter, 'for_people', 'categories']
+    exclude = ('_num_people',)
     search_fields = ['title']
 
-    def get_changelist(self, request):
-        return MyChangeList
+    # def get_changelist(self, request):
+    #     return MyChangeList
 
     def for_who(self, obj):
         return ", ".join(sorted(i.username for i in obj.for_people.all()))
@@ -180,6 +181,9 @@ class EntryAdmin(admin.ModelAdmin):
         ]
         return my_urls + urls
 
+    # def save_related(self, request, form, formsets, change):
+    #     print("saved", form.for_people, formsets, change)
+    #     super(EntryAdmin, self).save_related(request, form, formsets, change)
 
     # def get_total():
     #     """Retourne le montant total de tous les résultats filtrés"""

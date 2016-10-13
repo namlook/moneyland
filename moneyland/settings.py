@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'pipeline',
     'debug_toolbar',
     'entries',
 ]
@@ -70,6 +71,54 @@ TEMPLATES = [
         },
     },
 ]
+
+# STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
+# # We are stuck with django finders for now, because of this bug
+# # https://github.com/jazzband/django-pipeline/issues/566
+# STATICFILES_FINDERS = (
+#     'django.contrib.staticfiles.finders.FileSystemFinder',
+#     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+#     'pipeline.finders.PipelineFinder',
+# )
+
+
+PIPELINE = {
+    'CSS_COMPRESSOR': 'pipeline.compressors.cssmin.CSSMinCompressor',
+    # 'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
+    # 'DISABLE_WRAPPER': True,
+    # 'SASS_BINARY': PROJECT_ROOT.child('node_modules', 'node-sass', 'bin', 'node-sass'),
+    # 'SASS_ARGUMENTS': '--include-path %s' % PROJECT_ROOT.child('bower_components'),
+    # 'COMPILERS': (
+    #     'pipeline.compilers.sass.SASSCompiler',
+    # ),
+    'STYLESHEETS': {
+        'highcharts': {
+            'source_filenames': (
+              'highcharts/css/highcharts.css',
+            #   'css/colors/*.css',
+            ),
+            'output_filename': 'css/highcharts.css',
+            'extra_context': {
+                'media': 'screen,projection',
+            },
+        },
+    },
+    'JAVASCRIPT': {
+        'highcharts': {
+            'source_filenames': (
+              'highcharts/highcharts.js',
+            #   'js/collections/*.js',
+            ),
+            'output_filename': 'js/stats.js',
+        },
+        'jquery': {
+            'source_filenames': (
+              'jquery/dist/jquery.js',
+            ),
+            'output_filename': 'js/jquery.js',
+        }
+    }
+}
 
 WSGI_APPLICATION = 'moneyland.wsgi.application'
 
@@ -118,8 +167,13 @@ USE_L10N = True
 
 USE_TZ = True
 
+STATIC_ROOT = "/Users/namlook/Documents/projets/django/moneyland/public"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
+STATICFILES_DIRS = [
+    # os.path.join(BASE_DIR, "static"),
+    os.path.join(BASE_DIR, "node_modules"),
+]
 
 STATIC_URL = '/static/'

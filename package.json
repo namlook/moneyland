@@ -1,0 +1,23 @@
+{
+  "name": "moneyland",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/namlook/moneyland.git"
+  },
+  "author": "Namlook <n.namlook@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/namlook/moneyland/issues"
+  },
+  "homepage": "https://github.com/namlook/moneyland#readme",
+  "dependencies": {
+    "highcharts": "^5.0.0",
+    "jquery": "^3.1.1"
+  }
+}

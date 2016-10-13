@@ -1,6 +1,18 @@
 {% extends "admin/change_list.html" %}
 
-{% load i18n admin_urls static admin_list %}
+{% load i18n admin_urls static admin_list pipeline %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  {% stylesheet 'highcharts' %}
+  {% javascript 'jquery' %}
+  {% javascript 'highcharts' %}
+  <script type="text/javascript">
+    $(function () {
+        $('#highcharts-container').highcharts({{ charts_options | safe }});
+    });
+  </script>
+{% endblock %}
 
 {% block breadcrumbs %}
     <div class="breadcrumbs">
@@ -10,9 +22,21 @@
     </div>
 {% endblock %}
 
+{% block object-tools %}
+    {{ block.super }}
+    <div id="highcharts-container"></div>
+{% endblock %}
 
 {% block result_list %}
-    <h1>Entries {{ total }}€</h1>
+    <h1>Entries ({{ total }}€)</h1>
+    <div>
+        <p>Balance: {{ total }}€ </p>
+        <p><b>{{ final_owe_person }} doit à {{ final_owe_other_person }}: {{ final_owe_amount }}€ </b> </p>
+        <ul>
+            <li>Nath doit à Nico: {{ nath_owe_nico }}€ </li>
+            <li>Nico doit à Nath: {{ nico_owe_nath }}€ </li>
+        </ul>
+    </div>
     <ul>
     {% for entry in object_list %}
         <li>{{ entry.date }} - {{ entry.title }}</li>
