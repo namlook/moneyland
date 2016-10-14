@@ -50,7 +50,15 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'csp.middleware.CSPMiddleware',
 ]
+
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
+CSP_SCRIPT_SRC = ("'self'",  "'unsafe-inline'", "ajax.googleapis.com")
+CSP_FONT_SRC = ("'self'", "data:")
+CSP_IMG_SRC = ("'self'", "data:")
+
 
 ROOT_URLCONF = 'moneyland.urls'
 
