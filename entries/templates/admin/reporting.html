@@ -9,7 +9,7 @@
   {% javascript 'highcharts' %}
   <script type="text/javascript">
     $(function () {
-        $('#highcharts-container').highcharts({{ charts_options | safe }});
+        $('#categories-chart-container').highcharts({{ categories_chart_options | safe }});
     });
   </script>
 {% endblock %}
@@ -24,13 +24,11 @@
 
 {% block object-tools %}
     {{ block.super }}
-    <div id="highcharts-container"></div>
 {% endblock %}
 
 {% block result_list %}
     <h1>Entries ({{ total }}€)</h1>
     <div>
-        <p>Balance: {{ total }}€ </p>
         <p><b>{{ final_owe_person }} doit à {{ final_owe_other_person }}: {{ final_owe_amount }}€ </b> </p>
         <ul>
             <li>Nath doit à Nico: {{ nath_owe_nico }}€ </li>
@@ -38,6 +36,8 @@
         </ul>
     </div>
     <ul>
+    <div id="categories-chart-container"></div>
+
     {% for entry in object_list %}
         <li>{{ entry.date }} - {{ entry.title }}</li>
     {% empty %}

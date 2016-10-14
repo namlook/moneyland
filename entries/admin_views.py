@@ -85,12 +85,12 @@ class ReportingView(ListView):
             'total': total,
             'nath_owe_nico': nath_owe_nico,
             'nico_owe_nath': nico_owe_nath,
-            'final_owe_amount': final_owe_amount,
+            'final_owe_person': final_owe_person,
             'final_owe_other_person': final_owe_other_person,
             'final_owe_amount': final_owe_amount
         }
 
-    def charts_options(self):
+    def categories_chart_options(self):
         data = [{'name': cat.title, 'y': round(cat.paid_amount, 2)} for cat in self.get_categories()]
         return json.dumps({
             "chart": {
@@ -116,6 +116,6 @@ class ReportingView(ListView):
         context = super(ReportingView, self).get_context_data(**kwargs)
         context.update(self.entry_admin.changelist_view(self.request).context_data)
         context['now'] = timezone.now()
-        context['charts_options'] = self.charts_options()
+        context['categories_chart_options'] = self.categories_chart_options()
         context.update(self.get_summary())
         return context
