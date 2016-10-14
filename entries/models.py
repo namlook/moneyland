@@ -63,7 +63,9 @@ def calculate_num_people(sender, instance, action, **kwargs):
     """ Automatically recalculate the number of people who share the amount """
     if action == 'post_add':
         instance._num_people = instance.for_people.count()
+        # instance.paid_amount = instance.amount / instance._num_people
         instance.save()
     if action == 'post_remove' or action == 'post_clear':
         instance._num_people = instance.for_people.count()
+        # instance.paid_amount = instance.amount / instance._num_people
         instance.save()

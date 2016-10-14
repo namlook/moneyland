@@ -1,28 +1,51 @@
 
 from django.views.generic.list import ListView
 from django.utils import timezone
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Q
 
-from entries.models import Entry
+from entries.models import Entry, Category
 
 import json
 
 class ReportingView(ListView):
     model = Entry
     template_name = "admin/reporting.html"
-    entry_admin = None
+    entry_admin = None # the Entry ModelAdmin
 
     def get_queryset(self):
         qs = super().get_queryset()
-        month = self.request.GET.get('month')
-        year = self.request.GET.get('year')
-        if month:
-            qs = qs.filter(date__month=month)
-        if year:
-            qs = qs.filter(date__year=year)
+        filter_names = list(self.request.GET)
+        for filter_name in filter_names:
+            if filter_name == 'q':
+                continue
+            filter = {}
+            value = self.request.GET.get(filter_name)
+            if value:
+                filter[filter_name] = value
+                qs = qs.filter(**filter)
+
+        search = self.request.GET.get('q')
+        if search:
+            qs = qs.filter(title__contains=search)
         return qs
 
-    def get_total_amount(self):
+    def get_categories(self):
+        filters = []
+        filter_names = list(self.request.GET)
+        for filter_name in filter_names:
+            if filter_name == 'q':
+                continue
+            filter = {}
+            value = self.request.GET.get(filter_name)
+            if value:
+                filter['entry__'+filter_name] = value
+                filters.append(Q(**filter))
+
+        return Category.objects \
+            .annotate(paid_amount=Sum(F('entry__amount')/F('entry___num_people'))) \
+            .filter(*filters).order_by('-paid_amount').all()
+
+    def get_summary(self):
         """
             * sum de paid_amount
             * sum des paid_amount des entries paid_by: "nico" beneficiary: "nath"
@@ -33,14 +56,19 @@ class ReportingView(ListView):
         qs = self.object_list.annotate(paid_amount=F('amount')/F('_num_people'))
 
         total = round(qs.aggregate(total=Sum('paid_amount'))['total'], 2)
-        nath_owe_nico = round(
-            qs.filter(paid_by__username="nico", for_people__username="nath") \
-              .aggregate(nath_owe_nico=Sum('paid_amount'))['nath_owe_nico']
-        )
-        nico_owe_nath = round(
-            qs.filter(paid_by__username="nath", for_people__username="nico") \
-              .aggregate(nico_owe_nath=Sum('paid_amount'))['nico_owe_nath']
-        )
+
+        nath_owe_nico = qs.filter(paid_by__username="nico", for_people__username="nath") \
+              .aggregate(nath_owe_nico=Sum('paid_amount'))['nath_owe_nico'] or 0
+
+        if nath_owe_nico:
+            nath_owe_nico = round(nath_owe_nico, 2)
+
+        nico_owe_nath = qs.filter(paid_by__username="nath", for_people__username="nico") \
+          .aggregate(nico_owe_nath=Sum('paid_amount'))['nico_owe_nath'] or 0
+
+        if nico_owe_nath:
+            nico_owe_nath = round(nico_owe_nath, 2)
+
         final_owe_person = "nobody"
         final_owe_other_person = ""
         final_owe_amount = 0
@@ -63,6 +91,7 @@ class ReportingView(ListView):
         }
 
     def charts_options(self):
+        data = [{'name': cat.title, 'y': round(cat.paid_amount, 2)} for cat in self.get_categories()]
         return json.dumps({
             "chart": {
                 "plotBackgroundColor": None,
@@ -71,35 +100,15 @@ class ReportingView(ListView):
                 "type": 'pie'
             },
             "title": {
-                "text": 'Browser market shares January, 2015 to May, 2015'
+                "text": 'Categories'
             },
             "tooltip": {
                 "pointFormat": '{series.name}: <b>{point.percentage:.1f}%</b>'
             },
             "series": [{
-                "name": 'Brands',
+                "name": 'Categories',
                 "colorByPoint": True,
-                "data": [{
-                    "name": 'Microsoft Internet Explorer',
-                    "y": 56.33
-                }, {
-                    "name": 'Chrome',
-                    "y": 24.03,
-                    "sliced": True,
-                    "selected": True
-                }, {
-                    "name": 'Firefox',
-                    "y": 10.38
-                }, {
-                    "name": 'Safari',
-                    "y": 4.77
-                }, {
-                    "name": 'Opera',
-                    "y": 0.91
-                }, {
-                    "name": 'Proprietary or Undetectable',
-                    "y": 0.2
-                }]
+                "data": data
             }]
         })
 
@@ -108,5 +117,5 @@ class ReportingView(ListView):
         context.update(self.entry_admin.changelist_view(self.request).context_data)
         context['now'] = timezone.now()
         context['charts_options'] = self.charts_options()
-        context.update(self.get_total_amount())
+        context.update(self.get_summary())
         return context

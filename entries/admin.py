@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.admin.views.main import ChangeList
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, F
 import datetime
 
 from .admin_views import ReportingView
@@ -23,7 +23,7 @@ class MonthListFilter(admin.SimpleListFilter):
     title = _('month')
 
     # Parameter for the filter that will be used in the URL query.
-    parameter_name = 'month'
+    parameter_name = 'date__month'
 
     def lookups(self, request, model_admin):
         """
@@ -33,7 +33,9 @@ class MonthListFilter(admin.SimpleListFilter):
         human-readable name for the option that will appear
         in the right sidebar.
         """
-        return (
+        months = [i.month for i in  Entry.objects.dates('date', 'month')]
+        months = list(dict.fromkeys(months).keys())
+        months_index = [
             ('1', _('janvier')),
             ('2', _('février')),
             ('3', _('mars')),
@@ -46,7 +48,9 @@ class MonthListFilter(admin.SimpleListFilter):
             ('10', _('octobre')),
             ('11', _('novembre')),
             ('12', _('décembre'))
-        )
+        ]
+        for month in months:
+            yield months_index[month]
 
     def queryset(self, request, queryset):
         """
@@ -68,16 +72,18 @@ class YearListFilter(admin.SimpleListFilter):
     title = _('year')
 
     # Parameter for the filter that will be used in the URL query.
-    parameter_name = 'year'
+    parameter_name = 'date__year'
 
     def lookups(self, request, model_admin):
         current_year = datetime.date.today().year
         qs = model_admin.get_queryset(request)
-        for i in range(5):
-            year = current_year - i
-            if qs.filter(date__gte="{}-1-1".format(year),
-                        date__lt="{}-1-1".format(year + 1)).exists():
-                yield (year, year)
+        dates = Entry.objects.dates('date', 'year')
+        for date in dates:
+            # year = current_year - i
+            # if qs.filter(date__gte="{}-1-1".format(year),
+                        # date__lt="{}-1-1".format(year + 1)).exists():
+                # yield (year, year)
+            yield (date.year, date.year)
 
 
     def queryset(self, request, queryset):
@@ -95,7 +101,7 @@ class NumPeopleListFilter(admin.SimpleListFilter):
     title = _('# people')
 
     # Parameter for the filter that will be used in the URL query.
-    parameter_name = 'num_people'
+    parameter_name = '_num_people'
 
     def lookups(self, request, model_admin):
         qs = model_admin.get_queryset(request)
@@ -112,6 +118,34 @@ class NumPeopleListFilter(admin.SimpleListFilter):
                     .filter(num_people=value)
         return queryset
 
+
+class CategoryListFilter(admin.SimpleListFilter):
+    # Human-readable title which will be displayed in the
+    # right admin sidebar just above the filter options.
+    title = _('Categories')
+
+    # Parameter for the filter that will be used in the URL query.
+    parameter_name = 'categories'
+
+    def lookups(self, request, model_admin):
+        qs = model_admin.get_queryset(request)
+         #.filter(*filters) \
+        categories = Category.objects \
+            .annotate(paid_amount=Sum(F('entry__amount')/F('entry___num_people'))) \
+            .order_by('-paid_amount').all()
+        for category in categories:
+            yield (
+                category.id,
+                # _("{} ({}€)".format( category.title, str(round(category.paid_amount, 2))))
+                category.title
+            )
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value is not None:
+            value = int(value)
+            return queryset.filter(categories=value)
+        return queryset
 
 # class MyChangeList(ChangeList):
 #
@@ -148,25 +182,22 @@ class NumPeopleListFilter(admin.SimpleListFilter):
 
 
 class EntryAdmin(admin.ModelAdmin):
-    list_display = ('date', 'title', 'paid_amount', 'paid_by', 'for_who', 'tags', 'num_people')
-    list_filter = ['date', YearListFilter, MonthListFilter, 'paid_by', NumPeopleListFilter, 'for_people', 'categories']
+    list_display = ('date', 'title', 'paid_amount', 'paid_by', 'num_people', 'tags')# 'for_who', 'tags', 'num_people')
+    list_filter = ['date', YearListFilter, MonthListFilter, 'paid_by', NumPeopleListFilter, CategoryListFilter]#, 'for_people', 'categories']
     exclude = ('_num_people',)
     search_fields = ['title']
 
-    # def get_changelist(self, request):
-    #     return MyChangeList
-
-    def for_who(self, obj):
-        return ", ".join(sorted(i.username for i in obj.for_people.all()))
-    for_who.short_description = 'for'
-
+    # def for_who(self, obj):
+    #     return ", ".join(sorted(i.username for i in obj.for_people.all()))
+    # for_who.short_description = 'for'
+    #
     def tags(self, obj):
         return ", ".join(sorted(i.title for i in obj.categories.all()))
     tags.short_description = 'categories'
 
     def num_people(self, obj):
         """# of people sharing the amount"""
-        return obj.num_people
+        return obj._num_people
     num_people.short_description = "# people"
 
     def get_queryset(self, request):

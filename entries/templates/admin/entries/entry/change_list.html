@@ -8,12 +8,14 @@
 {% endblock %}
 
 {% block content %}
+    {% comment %}
     <p>Balance: {{ cl.balance }}€ </p>
     <p><b>{{ cl.final_owe_person }} doit à {{ cl.final_owe_other_person }}: {{ cl.final_owe_amount }}€ </b> </p>
     <ul>
         <li>Nath doit à Nico: {{ cl.nath_owe_nico }}€ </li>
         <li>Nico doit à Nath: {{ cl.nico_owe_nath }}€ </li>
     </ul>
+    {% endcomment %}
     {{ block.super }}
 
 {% endblock %}
