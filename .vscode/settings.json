@@ -1,0 +1,10 @@
+// Placez vos paramètres dans ce fichier pour remplacer les paramètres par défaut et les paramètres utilisateur.
+{
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "yapf",
+    "python.linting.pylintEnabled": false,
+    "files.exclude": {
+        "**/__pycache__/": true,
+        "__pycache__/": true
+    }
+}

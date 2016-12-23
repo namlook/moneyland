@@ -1,5 +1,5 @@
 
-from .settings import *
+from .common import *
 
 INSTALLED_APPS.append('debug_toolbar')
 

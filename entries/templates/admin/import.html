@@ -1,0 +1,10 @@
+
+<form class="ui form {% if form.errors %} error {% endif %}" action="" method="post"
+        enctype="multipart/form-data">{% csrf_token %}
+
+    {#{{ form | ui_form_errors }}#}
+
+    {{form}}
+    
+    <input id="save" class="btn-valid" type="submit" value="Enregistrer"/>
+</form>

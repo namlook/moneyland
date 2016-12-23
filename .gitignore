@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 *.sqlite3
 data/depenses.csv
+.DS_Store
 
 # C extensions
 *.so

@@ -1,5 +1,5 @@
-from django.apps import AppConfig
+# from django.apps import AppConfig
 
 
-class EntriesConfig(AppConfig):
-    name = 'entries'
+# class EntriesConfig(AppConfig):
+#     name = 'entries'
