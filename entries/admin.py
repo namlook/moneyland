@@ -31,6 +31,16 @@ class CustomUserAdmin(UserAdmin):
 admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
 
+# def make_expense_for(username):
+#     user = User.objects.filter(username=username).first()
+
+#     def _make_expense_for(modeladmin, request, queryset):
+#         for expense in queryset:
+#             expense.for_people.clear()
+#             expense.for_people.add(user)
+#     _make_expense_for.short_description = 'marquer comme dépenses de {}'.format(user.username)
+#     return _make_expense_for
+
 
 @admin.register(Entry)
 class EntryAdmin(admin.ModelAdmin):
@@ -41,10 +51,44 @@ class EntryAdmin(admin.ModelAdmin):
         'category',
         'category__parent',
         'supplier',
-        'paid_by',
-    )
-    filter_vertical = ['for_people']
+        'paid_by', )
+    filter_vertical = ('for_people', )
     date_hierarchy = 'value_date'
+    actions = (
+        'sep',
+        'make_common_expense',
+        'make_expense_for_nath',
+        'make_expense_for_nico', )
+
+    def make_common_expense(self, request, queryset):
+        nath = User.objects.filter(username='nath').first()
+        nico = User.objects.filter(username='nico').first()
+        for expense in queryset:
+            expense.for_people.clear()
+            expense.for_people.add(nico, nath)
+
+    make_common_expense.short_description = 'Marquer comme dépense commune'
+
+    def make_expense_for_nath(self, request, queryset):
+        nath = User.objects.filter(username='nath').first()
+        for expense in queryset:
+            expense.for_people.clear()
+            expense.for_people.add(nath)
+
+    make_expense_for_nath.short_description = 'Marquer comme dépense de Nath'
+
+    def make_expense_for_nico(self, request, queryset):
+        nico = User.objects.filter(username='nico').first()
+        for expense in queryset:
+            expense.for_people.clear()
+            expense.for_people.add(nico)
+
+    make_expense_for_nico.short_description = 'Marquer comme dépense de Nico'
+
+    def sep(self):
+        pass
+
+    sep.short_description = '----'
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -52,10 +96,12 @@ class EntryAdmin(admin.ModelAdmin):
 
     def for_who(self, obj):
         return ", ".join(sorted(i.username for i in obj.for_people.all()))
+
     for_who.short_description = 'for'
 
     def parent_category(self, obj):
         return obj.category.parent
+
     parent_category.short_description = 'parent category'
 
     def save_model(self, request, obj, form, change):

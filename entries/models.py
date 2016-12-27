@@ -108,8 +108,7 @@ class Entry(models.Model):
     account = models.ForeignKey(Account, related_name="entries")
     paid_by = models.ForeignKey(
         User, related_name="paid_entries", blank=True, null=True)
-    for_people = models.ManyToManyField(
-        User, related_name="entries", blank=True, null=True)
+    for_people = models.ManyToManyField(User, related_name="entries")
     num_people = models.PositiveIntegerField(default=0)
     payment_type = models.CharField(
         verbose_name=_('payment type'),
@@ -151,13 +150,10 @@ class Income(Entry):
 
 
 @receiver(m2m_changed, sender=Entry.for_people.through)
-def calculate_num_people(sender, instance, action, **kwargs):
+def calculate_num_people(sender, instance, action, reverse, **kwargs):
     """ Automatically recalculate the number of people who share the amount """
-    if action == 'post_add':
-        instance.num_people = instance.for_people.count()
-        # instance.amount_by_person = instance.amount / instance._num_people
-        instance.save()
-    if action == 'post_remove' or action == 'post_clear':
-        instance.num_people = instance.for_people.count()
+    if not reverse and action in ['post_add', 'post_remove', 'post_clear']:
+        obj = Entry.objects.filter(pk=instance.pk).first()
+        instance.num_people = obj.for_people.count()
         # instance.amount_by_person = instance.amount / instance._num_people
         instance.save()

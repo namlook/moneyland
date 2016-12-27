@@ -131,7 +131,8 @@ class ImportView(FormView):
     def post(self, request):
         form = self.form_class(request.POST, request.FILES)
         if form.is_valid():
-            file = TextIOWrapper(form.cleaned_data['uploaded_file'].file, encoding='iso8859')
+            file = TextIOWrapper(
+                form.cleaned_data['uploaded_file'].file, encoding='iso8859')
             try:
                 import_csv(request.user, file)
                 return self.form_valid(form)
