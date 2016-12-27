@@ -137,14 +137,14 @@ class Entry(models.Model):
 
 class Expense(Entry):
     def save(self, *args, **kwargs):
-        if self.amount > 0: # expense should be negative
+        if self.amount > 0:  # expense should be negative
             self.amount = self.amount * -1
         return super().save(*args, **kwargs)
 
 
 class Income(Entry):
     def save(self, *args, **kwargs):
-        if self.amount < 0: # income should be positive
+        if self.amount < 0:  # income should be positive
             self.amount = self.amount * -1
         return super().save(*args, **kwargs)
 
