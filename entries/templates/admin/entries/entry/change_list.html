@@ -1,13 +1,20 @@
 {% extends 'admin/change_list.html' %}
 
-
-
 {% block object-tools-items %}
     {{ block.super }}
-    <li> <a href="{% url 'admin:reporting' %}">reporting</a> </li>
+    {% comment %}<li> <a href="{% url 'admin:reporting' %}">reporting</a> </li>{% endcomment %}
+    <li> <a class="addlink" href="{% url 'entries-import' %}">import</a> </li>
 {% endblock %}
 
 {% block content %}
+    <h1>Dépenses total : {{ total }}€</h1>
+    <div>
+        <p><b>{{ final_owe_person }} doit à {{ final_owe_other_person }}: {{ final_owe_amount }}€ </b> </p>
+        <ul>
+            <li>Nath doit à Nico: {{ nath_owe_nico }}€ </li>
+            <li>Nico doit à Nath: {{ nico_owe_nath }}€ </li>
+        </ul>
+    </div>
     {% comment %}
     <p>Balance: {{ cl.balance }}€ </p>
     <p><b>{{ cl.final_owe_person }} doit à {{ cl.final_owe_other_person }}: {{ cl.final_owe_amount }}€ </b> </p>

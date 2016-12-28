@@ -35,7 +35,7 @@
             <li>Nico doit à Nath: {{ nico_owe_nath }}€ </li>
         </ul>
     </div>
-    <ul>
+    {% comment %}<ul>
     <div id="categories-chart-container"></div>
 
     {% for entry in object_list %}
@@ -43,5 +43,5 @@
     {% empty %}
         <li>No entries yet.</li>
     {% endfor %}
-    </ul>
+    </ul>{% endcomment %}
 {% endblock %}

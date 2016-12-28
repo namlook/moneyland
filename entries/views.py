@@ -117,6 +117,7 @@ def import_csv(user, file):
             amount=amount,
             account=account,
             payment_type=payment_type,
+            paid_by=user,
             location=location, )
         from pprint import pprint
         pprint(entry.__dict__)

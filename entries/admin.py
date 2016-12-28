@@ -2,11 +2,13 @@
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin, User
+from django.db.models import Count, Sum, F
 # from django.conf.urls import url
 from django.utils.translation import ugettext_lazy as _
 
 # from .admin_views import ReportingView
-from .models import Profile, Account, Entry, User, Supplier, Category, ParentCategory, PaymentType, Expense, Income
+from .models import (Profile, Account, Entry, Supplier, Category,
+                     ParentCategory, Expense, Income)
 from .forms import EntryForm
 
 # from .filters import YearListFilter, MonthListFilter, NumPeopleListFilter
@@ -42,11 +44,37 @@ admin.site.register(User, CustomUserAdmin)
 #     return _make_expense_for
 
 
+class RelatedOnlyFieldListFilter(admin.RelatedFieldListFilter):
+    include_empty_choice = True
+
+    def field_choices(self, field, request, model_admin):
+        qs = model_admin.get_queryset(request)
+        # filters = {}
+        # for filter, value in request.GET.items():
+        #     filters[filter] = request.GET.get(filter)
+        # qs = qs.filter(**filters)
+        pk_qs = qs.values_list(
+            '%s__pk' % self.field_path, flat=True).distinct()
+        print('===', pk_qs)
+        choices = field.get_choices(
+            include_blank=False, limit_choices_to={'pk__in': pk_qs})
+        print(choices)
+        return choices
+
+
 @admin.register(Entry)
 class EntryAdmin(admin.ModelAdmin):
     form = EntryForm
-    list_display = ('payment_type', 'label', 'value_date', 'amount',
-                    'parent_category', 'category', 'num_people', 'for_who')
+    list_display = (
+        'payment_type',
+        'label',
+        'value_date',
+        'amount',
+        'parent_category',
+        'category',
+        'paid_by',
+        'for_who',
+        'num_people', )
     list_select_related = (
         'category',
         'category__parent',
@@ -59,6 +87,18 @@ class EntryAdmin(admin.ModelAdmin):
         'make_common_expense',
         'make_expense_for_nath',
         'make_expense_for_nico', )
+    list_filter = (
+        ('paid_by', RelatedOnlyFieldListFilter),
+        ('for_people', RelatedOnlyFieldListFilter),
+        'num_people',
+        ('category__parent', RelatedOnlyFieldListFilter),
+        ('category', RelatedOnlyFieldListFilter),
+        ('supplier', RelatedOnlyFieldListFilter),
+        'payment_type', )
+    search_fields = (
+        'label',
+        'category__parent__title',
+        'category__title', )
 
     def make_common_expense(self, request, queryset):
         nath = User.objects.filter(username='nath').first()
@@ -92,6 +132,10 @@ class EntryAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
+        filters = {}
+        for filter, value in request.GET.items():
+            filters[filter] = request.GET.get(filter)
+        qs = qs.filter(**filters)
         return qs.prefetch_related('for_people')
 
     def for_who(self, obj):
@@ -107,6 +151,50 @@ class EntryAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.account = request.user.account
         return super().save_model(request, obj, form, change)
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+
+        qs = self.get_queryset(request)
+
+        total = round(qs.aggregate(total=Sum('amount'))['total'], 2)
+        extra_context['total'] = total
+
+        qs = qs.annotate(paid_amount=F('amount') / F('num_people'))
+
+        nath_owe_nico = qs.filter(
+            paid_by__username="nico", for_people__username="nath").aggregate(
+                nath_owe_nico=Sum('paid_amount'))['nath_owe_nico'] or 0
+
+        if nath_owe_nico:
+            nath_owe_nico = round(-nath_owe_nico, 2)
+
+        nico_owe_nath = qs.filter(
+            paid_by__username="nath", for_people__username="nico").aggregate(
+                nico_owe_nath=Sum('paid_amount'))['nico_owe_nath'] or 0
+
+        if nico_owe_nath:
+            nico_owe_nath = round(-nico_owe_nath, 2)
+
+        final_owe_person = "nobody"
+        final_owe_other_person = ""
+        final_owe_amount = 0
+        if nath_owe_nico > nico_owe_nath:
+            final_owe_person = "nath"
+            final_owe_other_person = "nico"
+            final_owe_amount = nath_owe_nico - nico_owe_nath
+        elif nico_owe_nath > nath_owe_nico:
+            final_owe_person = "nico"
+            final_owe_other_person = "nath"
+            final_owe_amount = nico_owe_nath - nath_owe_nico
+
+        extra_context['nath_owe_nico'] = nath_owe_nico
+        extra_context['nico_owe_nath'] = nico_owe_nath
+        extra_context['final_owe_person'] = final_owe_person
+        extra_context['final_owe_other_person'] = final_owe_other_person
+        extra_context['final_owe_amount'] = final_owe_amount
+
+        return super().changelist_view(request, extra_context=extra_context)
 
 
 admin.site.register(Expense, EntryAdmin)
