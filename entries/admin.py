@@ -1,8 +1,10 @@
 # import datetime
 
+import json
+
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin, User
-from django.db.models import Count, Sum, F
+from django.db.models import Count, Sum, F, Q
 # from django.conf.urls import url
 from django.utils.translation import ugettext_lazy as _
 
@@ -49,17 +51,27 @@ class RelatedOnlyFieldListFilter(admin.RelatedFieldListFilter):
 
     def field_choices(self, field, request, model_admin):
         qs = model_admin.get_queryset(request)
-        # filters = {}
-        # for filter, value in request.GET.items():
-        #     filters[filter] = request.GET.get(filter)
-        # qs = qs.filter(**filters)
         pk_qs = qs.values_list(
             '%s__pk' % self.field_path, flat=True).distinct()
-        print('===', pk_qs)
         choices = field.get_choices(
             include_blank=False, limit_choices_to={'pk__in': pk_qs})
-        print(choices)
         return choices
+
+
+class EntryTypeListFilter(admin.SimpleListFilter):
+    title = _('type')
+    parameter_name = 'type'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('expenses', _('expenses')),
+            ('incomes', _('incomes')), )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'expenses':
+            return queryset.filter(amount__lt=0)
+        elif self.value() == 'incomes':
+            return queryset.filter(amount__gt=0)
 
 
 @admin.register(Entry)
@@ -88,6 +100,7 @@ class EntryAdmin(admin.ModelAdmin):
         'make_expense_for_nath',
         'make_expense_for_nico', )
     list_filter = (
+        EntryTypeListFilter,
         ('paid_by', RelatedOnlyFieldListFilter),
         ('for_people', RelatedOnlyFieldListFilter),
         'num_people',
@@ -135,7 +148,10 @@ class EntryAdmin(admin.ModelAdmin):
         filters = {}
         for filter, value in request.GET.items():
             filters[filter] = request.GET.get(filter)
-        qs = qs.filter(**filters)
+        try:
+            qs = qs.filter(**filters)
+        except:
+            pass
         return qs.prefetch_related('for_people')
 
     def for_who(self, obj):
@@ -157,7 +173,7 @@ class EntryAdmin(admin.ModelAdmin):
 
         qs = self.get_queryset(request)
 
-        total = round(qs.aggregate(total=Sum('amount'))['total'], 2)
+        total = round(qs.aggregate(total=Sum('amount'))['total'] or 0, 2)
         extra_context['total'] = total
 
         qs = qs.annotate(paid_amount=F('amount') / F('num_people'))
@@ -194,7 +210,50 @@ class EntryAdmin(admin.ModelAdmin):
         extra_context['final_owe_other_person'] = final_owe_other_person
         extra_context['final_owe_amount'] = final_owe_amount
 
+        chart_options = self._get_categories_chart_options(request)
+        extra_context['categories_chart_options'] = chart_options
         return super().changelist_view(request, extra_context=extra_context)
+
+    def _get_categories(self, request):
+        filters = []
+        # filter_names = list(request.GET)
+        # for filter_name in filter_names:
+        #     if filter_name == 'q':
+        #         continue
+        #     filter = {}
+        #     value = request.GET.get(filter_name)
+        #     if value:
+        #         filter['entries__' + filter_name] = value
+        #         filters.append(Q(**filter))
+        return Category.objects \
+            .annotate(
+                paid_amount=Sum(F('entries__amount')/F('entries__num_people'))
+            ).filter(*filters).order_by('-paid_amount').all()
+
+    def _get_categories_chart_options(self, request):
+        data = [{
+            'name': cat.title,
+            'y': round(cat.paid_amount, 2)
+        } for cat in self._get_categories(request)]
+        return json.dumps({
+            "chart": {
+                "plotBackgroundColor": None,
+                "plotBorderWidth": None,
+                "plotShadow": False,
+                "type": 'pie'
+            },
+            "title": {
+                "text": 'Categories'
+            },
+            "tooltip": {
+                "pointFormat": '{series.name}: <b>{point.percentage:.1f}%</b>'
+            },
+            "series": [{
+                "name": 'Categories',
+                "colorByPoint": True,
+                "data": data
+            }]
+        })
 
 
 admin.site.register(Expense, EntryAdmin)

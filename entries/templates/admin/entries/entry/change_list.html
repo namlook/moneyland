@@ -1,5 +1,22 @@
 {% extends 'admin/change_list.html' %}
 
+{% load i18n admin_urls static admin_list pipeline %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  {% javascript 'jquery' %}
+  {% stylesheet 'highcharts' %}
+  {% comment %}<script type="text/javascript" src="{% static 'jquery/dist/jquery.js' %}"></script>{% endcomment %}
+  {% comment %}<script type="text/javascript" src="{% static 'highcharts/highcharts.js' %}"></script>{% endcomment %}
+  {% comment %}<link rel="stylesheet" href="{% static 'highcharts/css/highcharts.css' %}" />{% endcomment %}
+  {% javascript 'highcharts' %}
+  <script type="text/javascript">
+    $(function () {
+        $('#categories-chart-container').highcharts({{ categories_chart_options | safe }});
+    });
+  </script>
+{% endblock %}
+
 {% block object-tools-items %}
     {{ block.super }}
     {% comment %}<li> <a href="{% url 'admin:reporting' %}">reporting</a> </li>{% endcomment %}
@@ -15,14 +32,6 @@
             <li>Nico doit à Nath: {{ nico_owe_nath }}€ </li>
         </ul>
     </div>
-    {% comment %}
-    <p>Balance: {{ cl.balance }}€ </p>
-    <p><b>{{ cl.final_owe_person }} doit à {{ cl.final_owe_other_person }}: {{ cl.final_owe_amount }}€ </b> </p>
-    <ul>
-        <li>Nath doit à Nico: {{ cl.nath_owe_nico }}€ </li>
-        <li>Nico doit à Nath: {{ cl.nico_owe_nath }}€ </li>
-    </ul>
-    {% endcomment %}
     {{ block.super }}
-
+    <div id="categories-chart-container"></div>
 {% endblock %}
