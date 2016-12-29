@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # 'pipeline',
+    'pipeline',
     'entries',
 ]
 
@@ -72,36 +72,44 @@ TEMPLATES = [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.static',
                 'django.contrib.messages.context_processors.messages',
             ],
         },
     },
 ]
 
-# STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
+STATIC_ROOT = os.path.join(BASE_DIR, 'public')
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/1.10/howto/static-files/
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, '..', "node_modules"),
+]
+
+STATIC_URL = '/static/'
+
+STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
+# STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 # # We are stuck with django finders for now, because of this bug
 # # https://github.com/jazzband/django-pipeline/issues/566
-# STATICFILES_FINDERS = (
-#     'django.contrib.staticfiles.finders.FileSystemFinder',
-#     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-#     'pipeline.finders.PipelineFinder',
-# )
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'pipeline.finders.PipelineFinder',
+)
 
 
 PIPELINE = {
-    'CSS_COMPRESSOR': 'pipeline.compressors.cssmin.CSSMinCompressor',
+    # 'CSS_COMPRESSOR': 'pipeline.compressors.cssmin.CSSMinCompressor',
     # 'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
-    # 'DISABLE_WRAPPER': True,
-    # 'SASS_BINARY': PROJECT_ROOT.child('node_modules', 'node-sass', 'bin', 'node-sass'),
-    # 'SASS_ARGUMENTS': '--include-path %s' % PROJECT_ROOT.child('bower_components'),
-    # 'COMPILERS': (
-    #     'pipeline.compilers.sass.SASSCompiler',
-    # ),
+    'PIPELINE_ENABLED': False,
+    'JS_COMPRESSOR': 'pipeline.compressors.NoopCompressor',
+    'CSS_COMPRESSOR': 'pipeline.compressors.NoopCompressor',
     'STYLESHEETS': {
         'highcharts': {
             'source_filenames': (
               'highcharts/css/highcharts.css',
-            #   'css/colors/*.css',
             ),
             'output_filename': 'css/highcharts.css',
             'extra_context': {
@@ -113,7 +121,6 @@ PIPELINE = {
         'highcharts': {
             'source_filenames': (
               'highcharts/highcharts.js',
-            #   'js/collections/*.js',
             ),
             'output_filename': 'js/stats.js',
         },
@@ -171,13 +178,4 @@ USE_L10N = True
 
 USE_TZ = True
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'public')
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.10/howto/static-files/
-STATICFILES_DIRS = [
-    # os.path.join(BASE_DIR, "static"),
-    os.path.join(BASE_DIR, '..', "node_modules"),
-]
-
-STATIC_URL = '/static/'
