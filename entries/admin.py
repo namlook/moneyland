@@ -233,7 +233,7 @@ class EntryAdmin(admin.ModelAdmin):
     def _get_categories_chart_options(self, request):
         data = [{
             'name': cat.title,
-            'y': round(cat.paid_amount, 2)
+            'y': round(cat.paid_amount or 0, 2)
         } for cat in self._get_categories(request)]
         return json.dumps({
             "chart": {
