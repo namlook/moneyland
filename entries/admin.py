@@ -143,9 +143,9 @@ class EntryAdmin(admin.ModelAdmin):
 
     sep.short_description = '----'
 
-    def o2fieldnames(self, orders=()):
+    def get_orderfields(self, request):
         fieldnames = []
-        for order in orders:
+        for order in request.GET.get('o', []):
             descending = ''
             if order[0] == '-':
                 descending = '-'
@@ -153,19 +153,24 @@ class EntryAdmin(admin.ModelAdmin):
             fieldnames.append(descending + self.list_display[int(order)])
         return fieldnames
 
+    def get_filter(self, request):
+        filters = {}
+        for filter, value in request.GET.items():
+            if filter in ['o', 'q']:
+                continue
+            filters[filter] = request.GET.get(filter)
+        return filters
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        filters = {}
-        request_get = dict(request.GET)
-        orders = request_get.pop('o', None)
-        for filter, value in request_get.items():
-            filters[filter] = request.GET.get(filter)
+        filters = self.get_filter(request)
         try:
             qs = qs.filter(**filters)
-        except:
+        except Exception as err:
+            print('xxx', err)
             pass
-        if orders:
-            qs = qs.order_by(*self.o2fieldnames(orders))
+        ordering = self.get_orderfields(request)
+        qs = qs.order_by(*ordering)
         return qs.prefetch_related('for_people')
 
     def for_who(self, obj):
@@ -229,26 +234,25 @@ class EntryAdmin(admin.ModelAdmin):
         return super().changelist_view(request, extra_context=extra_context)
 
     def _get_categories(self, request):
-        filters = []
-        # filter_names = list(request.GET)
-        # for filter_name in filter_names:
-        #     if filter_name == 'q':
-        #         continue
-        #     filter = {}
-        #     value = request.GET.get(filter_name)
-        #     if value:
-        #         filter['entries__' + filter_name] = value
-        #         filters.append(Q(**filter))
+        filters = {}
+        for filter, value in self.get_filter(request).items():
+            if filter.startswith('category__'):
+                filter = filter.replace('category__', '')
+            else:
+                filter = "entries__{}".format(filter)
+            filters[filter] = value
         return Category.objects \
             .annotate(
-                paid_amount=Sum(F('entries__amount')/F('entries__num_people'))
-            ).filter(*filters).order_by('-paid_amount').all()
+                total_amount=Sum('entries__amount')
+                # paid_amount=Sum(F('entries__amount')/F('entries__num_people'))
+            ).filter(**filters).all()
 
     def _get_categories_chart_options(self, request):
+        categories = self._get_categories(request)
         data = [{
             'name': cat.title,
-            'y': round(cat.paid_amount, 2)
-        } for cat in self._get_categories(request)]
+            'y': round(abs(cat.total_amount), 2)
+        } for cat in categories.order_by('-total_amount')]
         return json.dumps({
             "chart": {
                 "plotBackgroundColor": None,
@@ -261,6 +265,16 @@ class EntryAdmin(admin.ModelAdmin):
             },
             "tooltip": {
                 "pointFormat": '{series.name}: <b>{point.percentage:.1f}%</b>'
+            },
+            'plotOptions': {
+                'pie': {
+                    'allowPointSelect': True,
+                    'cursor': 'pointer',
+                    'dataLabels': {
+                        'enabled': False
+                    },
+                    'showInLegend': True
+                }
             },
             "series": [{
                 "name": 'Categories',
@@ -365,4 +379,35 @@ admin.site.register(Account)
 #     extra_context['total'] = self.get_total(qs)
 #     return super(MyModelAdmin, self).change_view(
 #         request, object_id, form_url, extra_context=extra_context,
+#     )
+
+# from controlcenter import Dashboard, widgets, app_settings
+
+
+# class ModelItemList(widgets.ItemList):
+#     model = Entry
+#     list_display = (app_settings.SHARP, 'label', 'amount')
+#     limit_to = None
+#     height = 500
+
+# class MySingleBarChart(widgets.SinglePieChart):
+#     # label and series
+#     values_list = ('title', 'total')
+#     # Data source
+#     queryset = Category.objects.order_by('total').annotate(total=Sum("entries__amount"))
+#     limit_to = 10
+#     height = 500
+#     width = width=widgets.LARGE
+
+#     class Chartist:
+#         options = {
+#             # 'labelDirection': 'explode',
+#             'labelOffset': 100,
+#         }
+
+
+# class MyDashboard(Dashboard):
+#     widgets = (
+#         ModelItemList,
+#         MySingleBarChart,
 #     )

@@ -39,8 +39,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'pipeline',
+    # 'controlcenter',
     'entries',
 ]
+
+# CONTROLCENTER_DASHBOARDS = (
+#     'entries.admin.MyDashboard',
+# )
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
