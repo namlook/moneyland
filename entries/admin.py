@@ -251,7 +251,7 @@ class EntryAdmin(admin.ModelAdmin):
         categories = self._get_categories(request)
         data = [{
             'name': cat.title,
-            'y': round(abs(cat.total_amount), 2)
+            'y': round(abs(cat.total_amount or 0), 2)
         } for cat in categories.order_by('-total_amount')]
         return json.dumps({
             "chart": {
