@@ -143,15 +143,29 @@ class EntryAdmin(admin.ModelAdmin):
 
     sep.short_description = '----'
 
+    def o2fieldnames(self, orders=()):
+        fieldnames = []
+        for order in orders:
+            descending = ''
+            if order[0] == '-':
+                descending = '-'
+                order = order[1:]
+            fieldnames.append(descending + self.list_display[int(order)])
+        return fieldnames
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         filters = {}
-        for filter, value in request.GET.items():
+        request_get = dict(request.GET)
+        orders = request_get.pop('o', None)
+        for filter, value in request_get.items():
             filters[filter] = request.GET.get(filter)
         try:
             qs = qs.filter(**filters)
         except:
             pass
+        if orders:
+            qs = qs.order_by(*self.o2fieldnames(orders))
         return qs.prefetch_related('for_people')
 
     def for_who(self, obj):
