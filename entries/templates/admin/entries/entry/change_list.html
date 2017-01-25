@@ -6,9 +6,6 @@
   {{ block.super }}
   {% javascript 'jquery' %}
   {% stylesheet 'highcharts' %}
-  {% comment %}<script type="text/javascript" src="{% static 'jquery/dist/jquery.js' %}"></script>{% endcomment %}
-  {% comment %}<script type="text/javascript" src="{% static 'highcharts/highcharts.js' %}"></script>{% endcomment %}
-  {% comment %}<link rel="stylesheet" href="{% static 'highcharts/css/highcharts.css' %}" />{% endcomment %}
   {% javascript 'highcharts' %}
   <script type="text/javascript">
     $(document).ready(function() {

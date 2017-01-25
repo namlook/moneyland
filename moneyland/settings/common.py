@@ -125,16 +125,17 @@ PIPELINE = {
     'JAVASCRIPT': {
         'highcharts': {
             'source_filenames': (
+              'jquery/dist/jquery.js',
               'highcharts/highcharts.js',
             ),
             'output_filename': 'js/stats.js',
         },
-        'jquery': {
-            'source_filenames': (
-              'jquery/dist/jquery.js',
-            ),
-            'output_filename': 'js/jquery.js',
-        }
+        # 'jquery': {
+        #     'source_filenames': (
+        #       'jquery/dist/jquery.js',
+        #     ),
+        #     'output_filename': 'js/jquery.js',
+        # }
     }
 }
 
