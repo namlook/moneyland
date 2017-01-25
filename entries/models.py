@@ -45,7 +45,7 @@ class Category(models.Model):
 
     class Meta:
         ordering = ["title"]
-        verbose_name_plural = "categories"
+        verbose_name_plural = _("categories")
 
     def save(self, **kwargs):
         if not self.pk:

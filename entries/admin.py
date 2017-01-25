@@ -197,6 +197,9 @@ class EntryAdmin(admin.ModelAdmin):
 
         qs = qs.annotate(paid_amount=F('amount') / F('num_people'))
 
+        unit_total = round(qs.aggregate(total=Sum('paid_amount'))['total'] or 0, 2)
+        extra_context['unit_total'] = unit_total
+
         nath_owe_nico = qs.filter(
             paid_by__username="nico", for_people__username="nath").aggregate(
                 nath_owe_nico=Sum('paid_amount'))['nath_owe_nico'] or 0

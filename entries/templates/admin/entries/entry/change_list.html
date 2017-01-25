@@ -24,7 +24,8 @@
 {% endblock %}
 
 {% block content %}
-    <h1>Dépenses total : {{ total }}€</h1>
+    <h1>Dépenses global : {{ total }}€</h1>
+    <h2>Dépenses unitaire : {{unit_total}}€</h2>
     <div>
         <p><b>{{ final_owe_person }} doit à {{ final_owe_other_person }}: {{ final_owe_amount }}€ </b> </p>
         <ul>
