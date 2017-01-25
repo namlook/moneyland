@@ -11,7 +11,7 @@
   {% comment %}<link rel="stylesheet" href="{% static 'highcharts/css/highcharts.css' %}" />{% endcomment %}
   {% javascript 'highcharts' %}
   <script type="text/javascript">
-    $(function () {
+    $(document).ready(function() {
         $('#categories-chart-container').highcharts({{ categories_chart_options | safe }});
     });
   </script>
