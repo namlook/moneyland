@@ -127,6 +127,8 @@ PIPELINE = {
             'source_filenames': (
               'jquery/dist/jquery.js',
               'highcharts/highcharts.js',
+              'highcharts/js/modules/data.js',
+              'highcharts/js/modules/drilldown.js',
             ),
             'output_filename': 'js/stats.js',
         },

@@ -9,7 +9,8 @@
   {% javascript 'highcharts' %}
   <script type="text/javascript">
     $(document).ready(function() {
-        $('#categories-chart-container').highcharts({{ categories_chart_options | safe }});
+        $('#categories-parent-chart-container').highcharts({{ parent_categories_chart_options | safe }});
+        {% comment %}$('#categories-chart-container').highcharts({{ categories_chart_options | safe }});{% endcomment %}
     });
   </script>
 {% endblock %}
@@ -31,5 +32,6 @@
         </ul>
     </div>
     {{ block.super }}
+    <div id="categories-parent-chart-container"></div>
     <div id="categories-chart-container"></div>
 {% endblock %}

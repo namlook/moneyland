@@ -74,6 +74,44 @@ class EntryTypeListFilter(admin.SimpleListFilter):
             return queryset.filter(amount__gt=0)
 
 
+class DonutChart(object):
+    def __init__(self, title, data, drilldown_data=()):
+        self.config = {
+            "chart": {
+                "plotBackgroundColor": None,
+                "plotBorderWidth": None,
+                "plotShadow": False,
+                "type": 'pie'
+            },
+            "title": {
+                "text": title
+            },
+            "tooltip": {
+                "pointFormat": '{point.name}: <b>{point.y:.1f}€</b>'
+            },
+            'plotOptions': {
+                'pie': {
+                    'allowPointSelect': True,
+                    'cursor': 'pointer',
+                    'dataLabels': {
+                        'enabled': False
+                    },
+                    'showInLegend': True
+                }
+            },
+            "series": [{
+                "name": title,
+                "colorByPoint": True,
+                "data": data
+            }],
+        }
+        if drilldown_data:
+            self.config['drilldown'] = {'series': drilldown_data}
+
+    def to_json_config(self):
+        return json.dumps(self.config)
+
+
 @admin.register(Entry)
 class EntryAdmin(admin.ModelAdmin):
     form = EntryForm
@@ -197,7 +235,8 @@ class EntryAdmin(admin.ModelAdmin):
 
         qs = qs.annotate(paid_amount=F('amount') / F('num_people'))
 
-        unit_total = round(qs.aggregate(total=Sum('paid_amount'))['total'] or 0, 2)
+        unit_total = round(
+            qs.aggregate(total=Sum('paid_amount'))['total'] or 0, 2)
         extra_context['unit_total'] = unit_total
 
         nath_owe_nico = qs.filter(
@@ -232,59 +271,71 @@ class EntryAdmin(admin.ModelAdmin):
         extra_context['final_owe_other_person'] = final_owe_other_person
         extra_context['final_owe_amount'] = final_owe_amount
 
-        chart_options = self._get_categories_chart_options(request)
-        extra_context['categories_chart_options'] = chart_options
+        # categories_chart_options = self._get_categories_chart_options(request)
+        # extra_context['categories_chart_options'] = categories_chart_options
+        parent_categories_chart_options = self._get_parent_categories_chart_options(
+            request)
+        extra_context[
+            'parent_categories_chart_options'] = parent_categories_chart_options
         return super().changelist_view(request, extra_context=extra_context)
 
-    def _get_categories(self, request):
+    def _get_parent_categories(self, request):
         filters = {}
         for filter, value in self.get_filter(request).items():
-            if filter.startswith('category__'):
-                filter = filter.replace('category__', '')
+            if filter.startswith('category__parent__'):
+                filter = filter.replace('category__parent__', '')
+            elif filter.startswith('category__'):
+                filter = filter.replace('category__', 'children__')
             else:
-                filter = "entries__{}".format(filter)
+                filter = 'children__entries__{}'
             filters[filter] = value
-        return Category.objects \
-            .annotate(
-                total_amount=Sum('entries__amount')
-                # paid_amount=Sum(F('entries__amount')/F('entries__num_people'))
-            ).filter(**filters).all()
+        return ParentCategory.objects.filter(**filters).annotate(
+            total_amount=Sum('children__entries__amount'),
+            paid_amount=Sum(
+                F('children__entries__amount') / F('children__entries__num_people')
+            )).all()
 
-    def _get_categories_chart_options(self, request):
-        categories = self._get_categories(request)
+    def _get_parent_categories_chart_options(self, request):
+        categories = self._get_parent_categories(request)
         data = [{
             'name': cat.title,
-            'y': round(abs(cat.total_amount or 0), 2)
+            'drilldown': cat.title,
+            'y': round(abs(cat.paid_amount or 0), 2),
         } for cat in categories.order_by('-total_amount')]
-        return json.dumps({
-            "chart": {
-                "plotBackgroundColor": None,
-                "plotBorderWidth": None,
-                "plotShadow": False,
-                "type": 'pie'
-            },
-            "title": {
-                "text": 'Categories'
-            },
-            "tooltip": {
-                "pointFormat": '{series.name}: <b>{point.percentage:.1f}%</b>'
-            },
-            'plotOptions': {
-                'pie': {
-                    'allowPointSelect': True,
-                    'cursor': 'pointer',
-                    'dataLabels': {
-                        'enabled': False
-                    },
-                    'showInLegend': True
-                }
-            },
-            "series": [{
-                "name": 'Categories',
-                "colorByPoint": True,
-                "data": data
-            }]
-        })
+        drilldown_data = [{
+            'name': cat.title,
+            'id': cat.title,
+            'data': [(i.title, round(abs(i.paid_amount or 0), 2))
+                     for i in cat.children.annotate(
+                         total_amount=Sum('entries__amount'),
+                         paid_amount=Sum(
+                             F('entries__amount') / F('entries__num_people')))]
+        } for cat in categories]
+        return DonutChart(
+            title='Parent categories',
+            data=data,
+            drilldown_data=drilldown_data).to_json_config()
+
+    # def _get_categories(self, request):
+    #     filters = {}
+    #     for filter, value in self.get_filter(request).items():
+    #         if filter.startswith('category__'):
+    #             filter = filter.replace('category__', '')
+    #         else:
+    #             filter = "entries__{}".format(filter)
+    #         filters[filter] = value
+    #     return Category.objects.filter(**filters).annotate(
+    #             total_amount=Sum('entries__amount')
+    #             # paid_amount=Sum(F('entries__amount')/F('entries__num_people'))
+    #         ).all()
+
+    # def _get_categories_chart_options(self, request):
+    #     categories = self._get_categories(request)
+    #     data = [{
+    #         'name': cat.title,
+    #         'y': round(abs(cat.total_amount or 0), 2)
+    #     } for cat in categories.order_by('-total_amount')]
+    #     return DonutChart(title='Categories', data=data).to_json_config()
 
 
 admin.site.register(Expense, EntryAdmin)
@@ -386,7 +437,6 @@ admin.site.register(Account)
 
 # from controlcenter import Dashboard, widgets, app_settings
 
-
 # class ModelItemList(widgets.ItemList):
 #     model = Entry
 #     list_display = (app_settings.SHARP, 'label', 'amount')
@@ -407,7 +457,6 @@ admin.site.register(Account)
 #             # 'labelDirection': 'explode',
 #             'labelOffset': 100,
 #         }
-
 
 # class MyDashboard(Dashboard):
 #     widgets = (
