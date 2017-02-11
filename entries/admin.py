@@ -184,13 +184,14 @@ class EntryAdmin(admin.ModelAdmin):
     def get_orderfields(self, request):
         fieldnames = []
         order = request.GET.get('o')
-        orders = order if type(order) is list else [order]
-        for order in orders:
-            descending = ''
-            if order[0] == '-':
-                descending = '-'
-                order = order[1:]
-            fieldnames.append(descending + self.list_display[int(order)])
+        if order:
+            orders = order if type(order) is list else [order]
+            for order in orders:
+                descending = ''
+                if order[0] == '-':
+                    descending = '-'
+                    order = order[1:]
+                fieldnames.append(descending + self.list_display[int(order)])
         return fieldnames
 
     def get_filter(self, request):
