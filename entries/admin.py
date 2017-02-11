@@ -183,7 +183,9 @@ class EntryAdmin(admin.ModelAdmin):
 
     def get_orderfields(self, request):
         fieldnames = []
-        for order in request.GET.get('o', []):
+        order = request.GET.get('o')
+        orders = order if type(order) is list else [order]
+        for order in orders:
             descending = ''
             if order[0] == '-':
                 descending = '-'
@@ -287,7 +289,7 @@ class EntryAdmin(admin.ModelAdmin):
             elif filter.startswith('category__'):
                 filter = filter.replace('category__', 'children__')
             else:
-                filter = 'children__entries__{}'
+                filter = 'children__entries__{}'.format(filter)
             filters[filter] = value
         return ParentCategory.objects.filter(**filters).annotate(
             total_amount=Sum('children__entries__amount'),
