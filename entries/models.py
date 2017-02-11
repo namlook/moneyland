@@ -120,7 +120,7 @@ class Entry(models.Model):
         verbose_name=_('location'), max_length=100, blank=True, null=True)
 
     class Meta:
-        ordering = ["-operation_date"]
+        ordering = ["-value_date"]
         verbose_name_plural = "entries"
 
     @property
